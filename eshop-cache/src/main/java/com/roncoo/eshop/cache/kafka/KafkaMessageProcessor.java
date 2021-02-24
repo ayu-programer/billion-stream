@@ -6,12 +6,17 @@ import com.roncoo.eshop.cache.model.ProductInfo;
 import com.roncoo.eshop.cache.model.ShopInfo;
 import com.roncoo.eshop.cache.service.CacheService;
 import com.roncoo.eshop.cache.spring.SpringContext;
+import com.roncoo.eshop.cache.zookeeper.ZooKeeperSession;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.utils.Json;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 
@@ -20,6 +25,7 @@ public class KafkaMessageProcessor implements Runnable {
     private KafkaStream  kafkaStream;
 
     private CacheService cacheService;
+    private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public KafkaMessageProcessor(KafkaStream kafkaStream) {
         this.kafkaStream = kafkaStream;
@@ -60,10 +66,36 @@ public class KafkaMessageProcessor implements Runnable {
 
         //4 保存数据到本地缓存及redis中
         cacheService.saveShopInfo2LocalCache(shopInfo);
+
+        //todo 新增分布式锁功能 即将数据保存到本地缓存后
+        // 4.1先获取zookeeper分布式锁，然后才能更新redis，同时要比较时间版本
+        ZooKeeperSession zooKeeperSession = ZooKeeperSession.getZookeeperSession();
+        zooKeeperSession.acquireDistributeLock(shopId);
+
+        ShopInfo shopInfoRedisCache = cacheService.getShopInfoByRedisCache(shopId);
+        if (shopInfoRedisCache != null){
+            try {
+                //获取 redis中已存在的shopinfo 中的时间戳
+                Date redis_modifiedTime = simpleDateFormat.parse(shopInfoRedisCache.getModifiedTime());
+
+                //获取当前线程中的shopinfo时间戳
+                Date current_modifiedTime = simpleDateFormat.parse(shopInfo.getModifiedTime());
+                // 如果获取zk分布式锁的线程的时间戳晚于已存在数据的时间戳，那么直接退出
+                if (current_modifiedTime.before(redis_modifiedTime)){
+                    System.out.println("current date"+shopInfo.getModifiedTime()+"is before existed date[" +
+                            shopInfoRedisCache.getModifiedTime()+"]");
+                    return;
+                }
+                System.out.println("current date"+shopInfo.getModifiedTime()+"is after existed date[" +
+                        shopInfoRedisCache.getModifiedTime()+"]");
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }else{
+            System.out.println("existed shop info is null.........");
+        }
         System.out.println("===================获取刚保存到本地缓存的店铺信息：" + cacheService.getShopInfoByLocalCache(shopId));
         cacheService.saveShopInfo2RedisCache(shopInfo);
-
-
     }
 
 

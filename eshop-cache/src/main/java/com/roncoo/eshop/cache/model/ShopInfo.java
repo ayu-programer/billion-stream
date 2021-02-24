@@ -11,6 +11,15 @@ public class ShopInfo {
 	private String name;
 	private Integer level;
 	private Double goodCommentRate;
+	private String modifiedTime;
+
+	public String getModifiedTime() {
+		return modifiedTime;
+	}
+
+	public void setModifiedTime(String modifiedTime) {
+		this.modifiedTime = modifiedTime;
+	}
 
 	public Long getShopId() {
 		return shopId;

@@ -20,5 +20,10 @@ public interface CacheService {
 
     public ProductInfo getProductInfoByLocalCache(Long id);
 
-    public ProductInfo getShopInfoByLocalCache(Long id);
+    public ShopInfo getShopInfoByLocalCache(Long id);
+
+    public ProductInfo getProductInfoByRedisCache(Long id);
+
+    public ShopInfo getShopInfoByRedisCache(Long id);
+
 }

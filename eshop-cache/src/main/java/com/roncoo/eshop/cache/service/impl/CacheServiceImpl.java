@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.roncoo.eshop.cache.model.ProductInfo;
 import com.roncoo.eshop.cache.model.ShopInfo;
 import com.roncoo.eshop.cache.service.CacheService;
+import kafka.utils.Json;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -31,7 +32,7 @@ public class CacheServiceImpl implements CacheService {
 
     /**
      * 查询本地缓存中的商品信息
-     * @param id
+     * @param
      * @return
      */
     @Cacheable(value = CACHE_NAME,key="'key_'+#productId")
@@ -41,12 +42,35 @@ public class CacheServiceImpl implements CacheService {
 
     /**
      * 查询本地缓存中的店铺信息
-     * @param id
+     * @param
      * @return
      */
     @Cacheable(value = CACHE_NAME,key="'key_'+#shopId")
-    public ProductInfo getShopInfoByLocalCache(Long shopId){
+    public ShopInfo getShopInfoByLocalCache(Long shopId){
         return null;
+    }
+
+    @Override
+    public ProductInfo getProductInfoByRedisCache(Long id) {
+        ProductInfo productInfo =null;
+        String key = "product_info_"+id;
+        String jsonStr = redisTemplate.opsForValue().get(id);
+        if (jsonStr != null){
+            productInfo = JSONObject.parseObject(jsonStr, ProductInfo.class);
+        }
+
+        return productInfo;
+    }
+
+    @Override
+    public ShopInfo getShopInfoByRedisCache(Long id) {
+        ShopInfo shopInfo =null;
+        String key = "shop_info_" + id;
+        String jsonStr = redisTemplate.opsForValue().get(id);
+        if (jsonStr != null){
+            shopInfo = JSONObject.parseObject(jsonStr, ShopInfo.class);
+        }
+        return shopInfo;
     }
 
     /**
