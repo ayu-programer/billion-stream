@@ -96,6 +96,8 @@ public class KafkaMessageProcessor implements Runnable {
         }
         System.out.println("===================获取刚保存到本地缓存的店铺信息：" + cacheService.getShopInfoByLocalCache(shopId));
         cacheService.saveShopInfo2RedisCache(shopInfo);
+        //释放分布式锁
+        zooKeeperSession.releaseDistributedLock(shopId);
     }
 
 
